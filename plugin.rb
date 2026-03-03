@@ -88,105 +88,142 @@ after_initialize do
     add_to_serializer(serializer_name, :anonymous_real_user_id, true) { object.user_id }
   end
 
-  if defined?(::BasicUserSerializer)
-    add_to_class(:basic_user_serializer, :avatar_template) do
-      if Hash === object && object[:avatar_template].present?
-        object[:avatar_template]
-      else
-        super()
-      end
+  add_to_class(:basic_user_serializer, :avatar_template) do
+    if Hash === object && object[:avatar_template].present?
+      object[:avatar_template]
+    else
+      super()
     end
   end
 
-  if defined?(::TopicPosterSerializer)
-    add_to_class(:topic_poster_serializer, :user_id) do
-      return super() if scope&.is_staff?
+  add_to_class(:topic_poster_serializer, :user_id) do
+    return super() if scope&.is_staff?
 
-      topic_id = object.respond_to?(:topic_id) ? object.topic_id : nil
-      source_user_id = object.respond_to?(:user_id) ? object.user_id : nil
+    topic_id = object.respond_to?(:topic_id) ? object.topic_id : nil
+    source_user_id = object.respond_to?(:user_id) ? object.user_id : nil
 
-      return super() if topic_id.blank? || source_user_id.blank?
-      return super() unless ::AnonymousTopicIdentity::AnonymizedUserMapper.anonymous_in_topic?(
-        topic_id: topic_id,
-        user_id: source_user_id
+    return super() if topic_id.blank? || source_user_id.blank?
+    return super() unless ::AnonymousTopicIdentity::AnonymizedUserMapper.anonymous_in_topic?(
+      topic_id: topic_id,
+      user_id: source_user_id
+    )
+
+    ::AnonymousTopicIdentity::AnonymizedUserMapper.pseudo_user_id(topic_id: topic_id, user_id: source_user_id)
+  end
+
+  add_to_class(:topic_list_item_serializer, :posters) do
+    posters = super()
+    return posters if posters.blank?
+
+    op_user_id = object&.user_id
+    return posters if op_user_id.blank?
+
+    only_op =
+      posters.select do |poster|
+        poster_user_id =
+          if poster.respond_to?(:user_id)
+            poster.user_id
+          elsif Hash === poster
+            poster[:user_id] || poster["user_id"]
+          end
+
+        poster_user_id.to_i == op_user_id.to_i
+      end
+
+    only_op.presence || posters.first(1)
+  end
+
+  add_to_class(:topic_list_item_serializer, :participants) do
+    participants = super()
+    return participants if participants.blank?
+
+    op_user_id = object&.user_id
+    return participants if op_user_id.blank?
+
+    only_op =
+      participants.select do |participant|
+        participant_user_id =
+          if participant.respond_to?(:user_id)
+            participant.user_id
+          elsif Hash === participant
+            participant[:user_id] || participant["user_id"] || participant[:id] || participant["id"]
+          elsif participant.respond_to?(:id)
+            participant.id
+          end
+
+        participant_user_id.to_i == op_user_id.to_i
+      end
+
+    only_op.presence || participants.first(1)
+  end
+
+  add_to_class(:topic_list_serializer, :users) do
+    users = []
+    topics = object&.topics || []
+
+    topics.each do |topic|
+      op_user = topic.respond_to?(:user) ? topic.user : nil
+      next if op_user.blank?
+
+      if !scope&.is_staff? && ::AnonymousTopicIdentity::AnonymizedUserMapper.anonymous_in_topic?(
+        topic_id: topic.id,
+        user_id: op_user.id
       )
+        users << ::AnonymousTopicIdentity::AnonymizedUserMapper.pseudo_user(topic_id: topic.id, user_id: op_user.id)
+      else
+        users << op_user
+      end
+    end
 
-      ::AnonymousTopicIdentity::AnonymizedUserMapper.pseudo_user_id(topic_id: topic_id, user_id: source_user_id)
+    users.uniq do |user|
+      Hash === user ? user[:id] : user.id
     end
   end
 
-  if defined?(::TopicListItemSerializer)
-    add_to_class(:topic_list_item_serializer, :posters) do
-      posters = super()
-      return posters if posters.blank?
+  add_to_class(:category_and_topic_lists_serializer, :users) do
+    users = []
+    topics = object&.topic_list&.topics || []
 
-      op_user_id = object&.user_id
-      return posters if op_user_id.blank?
+    topics.each do |topic|
+      op_user = topic.respond_to?(:user) ? topic.user : nil
+      next if op_user.blank?
 
-      only_op =
-        posters.select do |poster|
-          poster_user_id =
-            if poster.respond_to?(:user_id)
-              poster.user_id
-            elsif Hash === poster
-              poster[:user_id] || poster["user_id"]
-            end
+      if !scope&.is_staff? && ::AnonymousTopicIdentity::AnonymizedUserMapper.anonymous_in_topic?(
+        topic_id: topic.id,
+        user_id: op_user.id
+      )
+        users << ::AnonymousTopicIdentity::AnonymizedUserMapper.pseudo_user(topic_id: topic.id, user_id: op_user.id)
+      else
+        users << op_user
+      end
+    end
 
-          poster_user_id.to_i == op_user_id.to_i
-        end
-
-      only_op.presence || posters.first(1)
+    users.uniq do |user|
+      Hash === user ? user[:id] : user.id
     end
   end
 
-  if defined?(::CategoryAndTopicListsSerializer)
-    add_to_class(:category_and_topic_lists_serializer, :users) do
-      users = []
-      topics = object&.topic_list&.topics || []
-
-      topics.each do |topic|
-        op_user = topic.respond_to?(:user) ? topic.user : nil
-        next if op_user.blank?
-
-        if !scope&.is_staff? && ::AnonymousTopicIdentity::AnonymizedUserMapper.anonymous_in_topic?(
-          topic_id: topic.id,
-          user_id: op_user.id
-        )
-          users << ::AnonymousTopicIdentity::AnonymizedUserMapper.pseudo_user(topic_id: topic.id, user_id: op_user.id)
-        else
-          users << op_user
-        end
+  add_to_class(:topic_view_details_serializer, :participants) do
+    topic =
+      if object.respond_to?(:topic)
+        object.topic
+      elsif object.respond_to?(:topic_id)
+        Topic.find_by(id: object.topic_id)
       end
 
-      users.uniq do |user|
-        Hash === user ? user[:id] : user.id
-      end
+    return super() if topic.blank? || topic.user_id.blank?
+
+    op_user_id = topic.user_id
+
+    if !scope&.is_staff?
+      pseudo_user = ::AnonymousTopicIdentity::AnonymizedUserMapper.pseudo_user(
+        topic_id: topic.id,
+        user_id: op_user_id
+      )
+      return [pseudo_user] if pseudo_user.present?
     end
-  end
 
-  if defined?(::TopicViewDetailsSerializer)
-    add_to_class(:topic_view_details_serializer, :participants) do
-      topic =
-        if object.respond_to?(:topic)
-          object.topic
-        elsif object.respond_to?(:topic_id)
-          Topic.find_by(id: object.topic_id)
-        end
-
-      return super() if topic.blank? || topic.user_id.blank?
-
-      op_user_id = topic.user_id
-
-      if !scope&.is_staff?
-        pseudo_user = ::AnonymousTopicIdentity::AnonymizedUserMapper.pseudo_user(
-          topic_id: topic.id,
-          user_id: op_user_id
-        )
-        return [pseudo_user] if pseudo_user.present?
-      end
-
-      op_user = topic.respond_to?(:user) ? topic.user : User.find_by(id: op_user_id)
-      op_user.present? ? [op_user] : []
-    end
+    op_user = topic.respond_to?(:user) ? topic.user : User.find_by(id: op_user_id)
+    op_user.present? ? [op_user] : []
   end
 end
