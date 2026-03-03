@@ -1,0 +1,48 @@
+{{#if this.siteSettings.anonymous_topic_identity_enabled}}
+  <div class="anonymous-topic-identity-composer">
+    <label class="anonymous-topic-identity-toggle">
+      <Input
+        @type="checkbox"
+        @checked={{this.enabled}}
+        {{on "change" this.toggleEnabled}}
+      />
+      {{i18n "anonymous_topic_identity.composer.enable"}}
+    </label>
+
+    {{#if this.enabled}}
+      <label
+        class="anonymous-topic-identity-label"
+        for="anonymous-topic-identity-alias"
+      >
+        {{i18n "anonymous_topic_identity.composer.alias_label"}}
+      </label>
+      <Input
+        id="anonymous-topic-identity-alias"
+        class="anonymous-topic-identity-input"
+        @value={{this.alias}}
+        minlength={{this.siteSettings.anonymous_topic_identity_alias_min_length}}
+        maxlength={{this.siteSettings.anonymous_topic_identity_alias_max_length}}
+        placeholder={{i18n "anonymous_topic_identity.composer.alias_placeholder"}}
+        {{on "input" this.updateAlias}}
+      />
+      <p class="anonymous-topic-identity-hint">
+        {{i18n
+          "anonymous_topic_identity.composer.length_hint"
+          min=this.minLength
+          max=this.maxLength
+          current=this.aliasLength
+        }}
+      </p>
+      <p class="anonymous-topic-identity-validation {{this.validationClass}}">
+        {{this.validationMessage}}
+      </p>
+      <p class="anonymous-topic-identity-preview">
+        {{i18n
+          "anonymous_topic_identity.composer.preview"
+          alias=this.previewAlias
+          code=this.codePlaceholder
+        }}
+      </p>
+    {{/if}}
+  </div>
+{{/if}}

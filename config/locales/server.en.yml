@@ -1,0 +1,17 @@
+en:
+  site_settings:
+    anonymous_topic_identity_enabled: "Enable topic-level anonymous posting"
+    anonymous_topic_identity_code_length: "Anti-sockpuppet code length"
+    anonymous_topic_identity_alias_min_length: "Minimum alias length"
+    anonymous_topic_identity_alias_max_length: "Maximum alias length"
+    anonymous_topic_identity_extra_denylist: "Additional blocked aliases"
+    anonymous_topic_identity_secret_key: "Secret key for anti-sockpuppet code generation"
+
+  anonymous_topic_identity:
+    errors:
+      login_required: "You must be logged in to post anonymously."
+      alias_required: "Anonymous alias is required."
+      alias_too_short: "Anonymous alias must be at least %{min} characters."
+      alias_too_long: "Anonymous alias must be at most %{max} characters."
+      alias_invalid_chars: "Anonymous alias contains unsupported characters."
+      alias_blocked: "This anonymous alias is not allowed."

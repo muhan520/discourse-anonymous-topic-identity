@@ -1,0 +1,25 @@
+plugins:
+  anonymous_topic_identity_enabled:
+    default: true
+    client: true
+  anonymous_topic_identity_code_length:
+    default: 7
+    min: 6
+    max: 12
+    client: true
+  anonymous_topic_identity_alias_min_length:
+    default: 2
+    min: 1
+    max: 30
+    client: true
+  anonymous_topic_identity_alias_max_length:
+    default: 20
+    min: 2
+    max: 100
+    client: true
+  anonymous_topic_identity_extra_denylist:
+    default: ""
+    type: list
+  anonymous_topic_identity_secret_key:
+    default: ""
+    secret: true

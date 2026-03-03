@@ -1,0 +1,17 @@
+zh_CN:
+  site_settings:
+    anonymous_topic_identity_enabled: "启用话题级匿名发帖"
+    anonymous_topic_identity_code_length: "反精分码长度"
+    anonymous_topic_identity_alias_min_length: "马甲昵称最小长度"
+    anonymous_topic_identity_alias_max_length: "马甲昵称最大长度"
+    anonymous_topic_identity_extra_denylist: "额外禁用昵称列表"
+    anonymous_topic_identity_secret_key: "反精分码生成密钥"
+
+  anonymous_topic_identity:
+    errors:
+      login_required: "匿名发帖需要先登录。"
+      alias_required: "匿名昵称不能为空。"
+      alias_too_short: "匿名昵称长度不能少于 %{min}。"
+      alias_too_long: "匿名昵称长度不能超过 %{max}。"
+      alias_invalid_chars: "匿名昵称包含不支持的字符。"
+      alias_blocked: "该匿名昵称不可用。"

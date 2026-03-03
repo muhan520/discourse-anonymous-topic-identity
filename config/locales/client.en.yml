@@ -1,0 +1,14 @@
+en:
+  js:
+    anonymous_topic_identity:
+      composer:
+        enable: "Post anonymously"
+        alias_label: "Anonymous alias"
+        alias_placeholder: "Enter alias"
+        length_hint: "Length: %{current} (allowed %{min}-%{max})"
+        validation_required: "Alias is required when anonymous mode is enabled."
+        validation_ok: "Alias format looks good."
+        validation_too_short: "Alias must be at least %{min} characters."
+        validation_too_long: "Alias must be at most %{max} characters."
+        validation_invalid_chars: "Use letters, numbers, underscore, or hyphen."
+        preview: "Display name: %{alias}#%{code}"

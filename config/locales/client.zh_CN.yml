@@ -1,0 +1,14 @@
+zh_CN:
+  js:
+    anonymous_topic_identity:
+      composer:
+        enable: "匿名发帖/回帖"
+        alias_label: "马甲昵称"
+        alias_placeholder: "输入你想使用的马甲"
+        length_hint: "当前长度：%{current}（允许 %{min}-%{max}）"
+        validation_required: "开启匿名后必须填写昵称。"
+        validation_ok: "昵称格式可用。"
+        validation_too_short: "昵称长度不能少于 %{min}。"
+        validation_too_long: "昵称长度不能超过 %{max}。"
+        validation_invalid_chars: "仅支持中英文、数字、下划线或中划线。"
+        preview: "将显示为：%{alias}#%{code}"
