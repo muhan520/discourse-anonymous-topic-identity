@@ -52,6 +52,27 @@ after_initialize do
 
     serializer_class = "#{serializer_name}_serializer".to_sym
 
+    add_to_class(serializer_class, :name) do
+      snapshot = object.custom_fields[::AnonymousTopicIdentity::Fields::DISPLAY_SNAPSHOT]
+      return object.user&.name if snapshot.blank? || scope&.is_staff?
+
+      snapshot
+    end
+
+    add_to_class(serializer_class, :username) do
+      snapshot = object.custom_fields[::AnonymousTopicIdentity::Fields::DISPLAY_SNAPSHOT]
+      return object.user&.username || object.username if snapshot.blank? || scope&.is_staff?
+
+      "anonymous"
+    end
+
+    add_to_class(serializer_class, :avatar_template) do
+      snapshot = object.custom_fields[::AnonymousTopicIdentity::Fields::DISPLAY_SNAPSHOT]
+      return object.user&.avatar_template if snapshot.blank? || scope&.is_staff?
+
+      User.avatar_template("anonymous", nil)
+    end
+
     add_to_class(serializer_class, :include_anonymous_real_user_id?) do
       scope&.is_staff? && object.custom_fields[::AnonymousTopicIdentity::Fields::DISPLAY_SNAPSHOT].present?
     end
