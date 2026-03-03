@@ -52,44 +52,6 @@ after_initialize do
 
     serializer_class = "#{serializer_name}_serializer".to_sym
 
-    add_to_class(serializer_class, :name) do
-      object.custom_fields[::AnonymousTopicIdentity::Fields::DISPLAY_SNAPSHOT] || super()
-    end
-
-    add_to_class(serializer_class, :username) do
-      if object.custom_fields[::AnonymousTopicIdentity::Fields::DISPLAY_SNAPSHOT].present?
-        nil
-      else
-        super()
-      end
-    end
-
-    add_to_class(serializer_class, :user_id) do
-      if object.custom_fields[::AnonymousTopicIdentity::Fields::DISPLAY_SNAPSHOT].present? && !scope&.is_staff?
-        nil
-      else
-        super()
-      end
-    end
-
-    add_to_class(serializer_class, :avatar_template) do
-      if object.custom_fields[::AnonymousTopicIdentity::Fields::DISPLAY_SNAPSHOT].present?
-        User.avatar_template("anonymous", nil)
-      else
-        super()
-      end
-    end
-
-    [:admin, :moderator, :staff].each do |role_field|
-      add_to_class(serializer_class, role_field) do
-        if object.custom_fields[::AnonymousTopicIdentity::Fields::DISPLAY_SNAPSHOT].present? && !scope&.is_staff?
-          false
-        else
-          super()
-        end
-      end
-    end
-
     add_to_class(serializer_class, :include_anonymous_real_user_id?) do
       scope&.is_staff? && object.custom_fields[::AnonymousTopicIdentity::Fields::DISPLAY_SNAPSHOT].present?
     end
