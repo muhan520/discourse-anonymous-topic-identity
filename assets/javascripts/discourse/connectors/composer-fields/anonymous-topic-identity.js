@@ -9,15 +9,15 @@ export default class AnonymousTopicIdentityComposerFields extends Component {
   @service siteSettings;
 
   get composer() {
-    return this.args.outletArgs?.composer;
+    return this.args.outletArgs?.model;
   }
 
   get enabled() {
-    return Boolean(this.composer?.model?.anonymous_enabled);
+    return Boolean(this.composer?.anonymous_enabled);
   }
 
   get alias() {
-    return this.composer?.model?.anonymous_alias || "";
+    return this.composer?.anonymous_alias || "";
   }
 
   get codePlaceholder() {
@@ -89,22 +89,22 @@ export default class AnonymousTopicIdentityComposerFields extends Component {
 
   @action
   toggleEnabled(event) {
-    if (!this.composer?.model) {
+    if (!this.composer) {
       return;
     }
 
-    this.composer.model.set("anonymous_enabled", event.target.checked);
+    this.composer.set("anonymous_enabled", event.target.checked);
     if (!event.target.checked) {
-      this.composer.model.set("anonymous_alias", "");
+      this.composer.set("anonymous_alias", "");
     }
   }
 
   @action
   updateAlias(event) {
-    if (!this.composer?.model) {
+    if (!this.composer) {
       return;
     }
 
-    this.composer.model.set("anonymous_alias", event.target.value);
+    this.composer.set("anonymous_alias", event.target.value);
   }
 }
