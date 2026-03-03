@@ -1,6 +1,6 @@
 .anonymous-topic-identity-composer {
-  margin-top: 0.5rem;
-  padding: 0.75rem;
+  margin-top: 0.35rem;
+  padding: 0.5rem 0.75rem;
   border: 1px solid var(--primary-low);
   border-radius: 6px;
   background: var(--secondary-very-high);
@@ -15,7 +15,7 @@
 
 .anonymous-topic-identity-label {
   display: block;
-  margin-top: 0.75rem;
+  margin-top: 0.5rem;
   margin-bottom: 0.25rem;
   font-size: var(--font-down-1);
   color: var(--primary-medium);
@@ -25,29 +25,16 @@
   width: 100%;
 }
 
-.anonymous-topic-identity-preview {
-  margin-top: 0.5rem;
-  margin-bottom: 0;
-  font-size: var(--font-down-1);
-  color: var(--primary-medium);
-}
-
-.anonymous-topic-identity-hint {
-  margin-top: 0.5rem;
-  margin-bottom: 0.25rem;
-  font-size: var(--font-down-1);
-  color: var(--primary-medium);
-}
-
-.anonymous-topic-identity-validation {
-  margin-bottom: 0.25rem;
+.anonymous-topic-identity-meta {
+  margin-top: 0.4rem;
+  margin-bottom: 0.1rem;
   font-size: var(--font-down-1);
 }
 
-.anonymous-topic-identity-validation.is-valid {
+.anonymous-topic-identity-meta.is-valid {
   color: var(--success);
 }
 
-.anonymous-topic-identity-validation.is-invalid {
+.anonymous-topic-identity-meta.is-invalid {
   color: var(--danger);
 }

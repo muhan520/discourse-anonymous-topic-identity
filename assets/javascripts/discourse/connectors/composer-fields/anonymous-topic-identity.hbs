@@ -25,23 +25,8 @@
         placeholder={{i18n "anonymous_topic_identity.composer.alias_placeholder"}}
         {{on "input" this.updateAlias}}
       />
-      <p class="anonymous-topic-identity-hint">
-        {{i18n
-          "anonymous_topic_identity.composer.length_hint"
-          min=this.minLength
-          max=this.maxLength
-          current=this.aliasLength
-        }}
-      </p>
-      <p class="anonymous-topic-identity-validation {{this.validationClass}}">
+      <p class="anonymous-topic-identity-meta {{this.validationClass}}">
         {{this.validationMessage}}
-      </p>
-      <p class="anonymous-topic-identity-preview">
-        {{i18n
-          "anonymous_topic_identity.composer.preview"
-          alias=this.previewAlias
-          code=this.codePlaceholder
-        }}
       </p>
     {{/if}}
   </div>

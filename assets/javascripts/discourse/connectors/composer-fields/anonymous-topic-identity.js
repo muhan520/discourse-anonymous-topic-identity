@@ -1,11 +1,13 @@
 import Component from "@glimmer/component";
-import { action } from "@ember/object";
+import { action, get, set } from "@ember/object";
+import { next } from "@ember/runloop";
 import { inject as service } from "@ember/service";
 import I18n from "I18n";
 
 const ALIAS_REGEX = /^[\p{L}\p{N}_-]+$/u;
 
 export default class AnonymousTopicIdentityComposerFields extends Component {
+  @service appEvents;
   @service siteSettings;
 
   get composer() {
@@ -13,11 +15,11 @@ export default class AnonymousTopicIdentityComposerFields extends Component {
   }
 
   get enabled() {
-    return Boolean(this.composer?.anonymous_enabled);
+    return this.composer ? Boolean(get(this.composer, "anonymous_enabled")) : false;
   }
 
   get alias() {
-    return this.composer?.anonymous_alias || "";
+    return this.composer ? get(this.composer, "anonymous_alias") || "" : "";
   }
 
   get codePlaceholder() {
@@ -75,7 +77,10 @@ export default class AnonymousTopicIdentityComposerFields extends Component {
       return I18n.t("anonymous_topic_identity.composer.validation_invalid_chars");
     }
 
-    return I18n.t("anonymous_topic_identity.composer.validation_ok");
+    return I18n.t("anonymous_topic_identity.composer.preview", {
+      alias: this.previewAlias,
+      code: this.codePlaceholder,
+    });
   }
 
   get validationClass() {
@@ -93,10 +98,12 @@ export default class AnonymousTopicIdentityComposerFields extends Component {
       return;
     }
 
-    this.composer.set("anonymous_enabled", event.target.checked);
+    set(this.composer, "anonymous_enabled", event.target.checked);
     if (!event.target.checked) {
-      this.composer.set("anonymous_alias", "");
+      set(this.composer, "anonymous_alias", "");
     }
+
+    this.triggerComposerResize();
   }
 
   @action
@@ -105,6 +112,18 @@ export default class AnonymousTopicIdentityComposerFields extends Component {
       return;
     }
 
-    this.composer.set("anonymous_alias", event.target.value);
+    set(this.composer, "anonymous_alias", event.target.value);
+    this.triggerComposerResize();
+  }
+
+  @action
+  triggerComposerResize() {
+    this.appEvents?.trigger?.("composer:resize");
+
+    next(() => {
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("resize"));
+      }
+    });
   }
 }

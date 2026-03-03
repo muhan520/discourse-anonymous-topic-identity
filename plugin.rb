@@ -63,7 +63,14 @@ after_initialize do
       snapshot = object.custom_fields[::AnonymousTopicIdentity::Fields::DISPLAY_SNAPSHOT]
       return object.user&.username || object.username if snapshot.blank? || scope&.is_staff?
 
-      "anonymous"
+      snapshot
+    end
+
+    add_to_class(serializer_class, :display_username) do
+      snapshot = object.custom_fields[::AnonymousTopicIdentity::Fields::DISPLAY_SNAPSHOT]
+      return object.user&.username || object.username if snapshot.blank? || scope&.is_staff?
+
+      snapshot
     end
 
     add_to_class(serializer_class, :avatar_template) do
