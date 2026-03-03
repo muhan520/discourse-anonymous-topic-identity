@@ -10,12 +10,12 @@ enabled_site_setting :anonymous_topic_identity_enabled
 
 register_asset "stylesheets/common/anonymous-topic-identity.scss"
 
-add_permitted_post_create_param :anonymous_enabled
-add_permitted_post_create_param :anonymous_alias
-
 require_relative "lib/anonymous_topic_identity"
 
 after_initialize do
+  add_permitted_post_create_param :anonymous_enabled
+  add_permitted_post_create_param :anonymous_alias
+
   require_relative "app/models/anonymous_topic_identity/identity"
   require_relative "app/models/anonymous_topic_identity/alias_event"
 
