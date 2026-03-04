@@ -40,7 +40,8 @@ RSpec.describe "Anonymous topic identity topic list avatars" do
     expect(non_staff_poster_user_ids).to eq([pseudo_user_id])
     expect(non_staff_poster_user_ids).not_to include(other_user.id)
 
-    expect(staff_poster_user_ids).to eq([user.id])
+    expect(staff_poster_user_ids).to eq([pseudo_user_id])
+    expect(staff_poster_user_ids).not_to include(user.id)
     expect(staff_poster_user_ids).not_to include(other_user.id)
   end
 end

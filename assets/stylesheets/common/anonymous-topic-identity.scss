@@ -38,3 +38,11 @@
 .anonymous-topic-identity-meta.is-invalid {
   color: var(--danger);
 }
+
+.post__topic-map.topic-map.--op {
+  display: none;
+}
+
+.topic-map.--bottom {
+  display: none;
+}
