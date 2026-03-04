@@ -132,6 +132,38 @@ after_initialize do
       nil
     end
 
+  pseudo_user_struct =
+    Struct.new(
+      :id,
+      :username,
+      :name,
+      :avatar_template,
+      :primary_group_id,
+      :flair_group,
+      :admin,
+      :moderator,
+      :trust_level,
+      keyword_init: true
+    )
+
+  normalize_user_like =
+    lambda do |user|
+      return nil if user.blank?
+      return user unless Hash === user
+
+      pseudo_user_struct.new(
+        id: user[:id] || user["id"],
+        username: user[:username] || user["username"],
+        name: user[:name] || user["name"],
+        avatar_template: user[:avatar_template] || user["avatar_template"],
+        primary_group_id: user[:primary_group_id] || user["primary_group_id"],
+        flair_group: user[:flair_group] || user["flair_group"],
+        admin: user[:admin] || user["admin"],
+        moderator: user[:moderator] || user["moderator"],
+        trust_level: user[:trust_level] || user["trust_level"]
+      )
+    end
+
   topic_owner_user =
     lambda do |topic|
       return nil if topic.blank? || topic.user_id.blank?
@@ -148,7 +180,7 @@ after_initialize do
       pseudo_user =
         ::AnonymousTopicIdentity::AnonymizedUserMapper.pseudo_user(topic_id: topic.id, user_id: topic.user_id)
 
-      pseudo_user.presence || owner_user
+      normalize_user_like.call(pseudo_user).presence || owner_user
     end
 
   build_topic_owner_poster =
@@ -270,6 +302,8 @@ after_initialize do
   end
 
   add_to_class(:topic_view_details_serializer, :participants) do
+    default_participants = Array(super())
+
     topic =
       if object.respond_to?(:topic)
         object.topic
@@ -277,19 +311,42 @@ after_initialize do
         Topic.find_by(id: object.topic_id)
       end
 
-    return super() if topic.blank? || topic.user_id.blank?
+    return default_participants if topic.blank? || topic.user_id.blank?
 
     op_user_id = topic.user_id
+    op_participant =
+      default_participants.find do |participant|
+        participant_user =
+          if Hash === participant
+            participant[:user] || participant["user"]
+          elsif participant.respond_to?(:user)
+            participant.user
+          end
+
+        participant_user&.id.to_i == op_user_id.to_i
+      end
+
+    op_post_count =
+      if Hash === op_participant
+        op_participant[:post_count] || op_participant["post_count"]
+      elsif op_participant.respond_to?(:post_count)
+        op_participant.post_count
+      end
+    op_post_count = op_post_count.to_i
+    op_post_count = 1 if op_post_count <= 0
 
     if !scope&.is_staff?
       pseudo_user = ::AnonymousTopicIdentity::AnonymizedUserMapper.pseudo_user(
         topic_id: topic.id,
         user_id: op_user_id
       )
-      return [pseudo_user] if pseudo_user.present?
+      normalized_pseudo = normalize_user_like.call(pseudo_user)
+      return [{ user: normalized_pseudo, post_count: op_post_count }] if normalized_pseudo.present?
     end
 
     op_user = topic.respond_to?(:user) ? topic.user : User.find_by(id: op_user_id)
-    op_user.present? ? [op_user] : []
+    op_user.present? ? [{ user: op_user, post_count: op_post_count }] : []
+  rescue StandardError
+    default_participants
   end
 end
