@@ -92,7 +92,7 @@ after_initialize do
     if Hash === object && object[:avatar_template].present?
       object[:avatar_template]
     else
-      super()
+      defined?(super) ? super() : nil
     end
   end
 
@@ -151,6 +151,17 @@ after_initialize do
       return nil if user.blank?
       return user unless Hash === user
 
+      # Check if this is a minimal pseudo user hash (only basic fields)
+      # If so, return as-is to let BasicUserSerializer handle it correctly
+      has_extended_fields = user.key?(:primary_group_id) || user.key?("primary_group_id") ||
+                            user.key?(:flair_group) || user.key?("flair_group") ||
+                            user.key?(:admin) || user.key?("admin") ||
+                            user.key?(:moderator) || user.key?("moderator") ||
+                            user.key?(:trust_level) || user.key?("trust_level")
+
+      return user unless has_extended_fields
+
+      # Only convert to Struct if it has extended fields
       pseudo_user_struct.new(
         id: user[:id] || user["id"],
         username: user[:username] || user["username"],
@@ -227,17 +238,26 @@ after_initialize do
     source_user_id = extract_item_user_id.call(object)
     source_user_id ||= extract_item_user_id.call(object.user) if object.respond_to?(:user)
 
-    return super() if topic_id.blank? || source_user_id.blank?
-    return super() unless ::AnonymousTopicIdentity::AnonymizedUserMapper.anonymous_in_topic?(
+    return source_user_id if topic_id.blank? || source_user_id.blank?
+    return source_user_id unless ::AnonymousTopicIdentity::AnonymizedUserMapper.anonymous_in_topic?(
       topic_id: topic_id,
       user_id: source_user_id
     )
 
     ::AnonymousTopicIdentity::AnonymizedUserMapper.pseudo_user_id(topic_id: topic_id, user_id: source_user_id)
+  rescue StandardError
+    defined?(super) ? super() : source_user_id
   end
 
   add_to_class(:topic_list_item_serializer, :posters) do
-    posters = Array(super())
+    posters =
+      if defined?(super)
+        Array(super())
+      elsif object.respond_to?(:posters)
+        Array(object.posters)
+      else
+        []
+      end
     topic = object
 
     op_user_id = topic&.user_id
@@ -249,10 +269,25 @@ after_initialize do
 
     owner_poster = build_topic_owner_poster.call(topic, source_poster, owner_user)
     owner_poster.present? ? [owner_poster] : posters.first(1)
+  rescue StandardError
+    if defined?(super)
+      Array(super())
+    elsif object.respond_to?(:posters)
+      Array(object.posters)
+    else
+      []
+    end
   end
 
   add_to_class(:topic_list_item_serializer, :participants) do
-    participants = Array(super())
+    participants =
+      if defined?(super)
+        Array(super())
+      elsif object.respond_to?(:participants)
+        Array(object.participants)
+      else
+        []
+      end
     topic = object
 
     op_user_id = topic&.user_id
@@ -265,6 +300,14 @@ after_initialize do
 
     owner_participant = build_topic_owner_poster.call(topic, source_participant, owner_user)
     owner_participant.present? ? [owner_participant] : participants.first(1)
+  rescue StandardError
+    if defined?(super)
+      Array(super())
+    elsif object.respond_to?(:participants)
+      Array(object.participants)
+    else
+      []
+    end
   end
 
   add_to_class(:topic_list_serializer, :users) do
@@ -302,7 +345,14 @@ after_initialize do
   end
 
   add_to_class(:topic_view_details_serializer, :participants) do
-    default_participants = Array(super())
+    default_participants =
+      if defined?(super)
+        Array(super())
+      elsif object.respond_to?(:participants)
+        Array(object.participants)
+      else
+        []
+      end
 
     topic =
       if object.respond_to?(:topic)
