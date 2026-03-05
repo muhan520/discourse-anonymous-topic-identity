@@ -89,11 +89,18 @@ after_initialize do
   end
 
   add_to_class(:basic_user_serializer, :avatar_template) do
+    Rails.logger.info("[anonymous] basic_user_serializer.avatar_template, object class: #{object.class}, is_hash: #{Hash === object}")
     if Hash === object && object[:avatar_template].present?
+      Rails.logger.info("[anonymous] returning hash avatar_template: #{object[:avatar_template]}")
       object[:avatar_template]
     else
-      defined?(super) ? super() : nil
+      result = defined?(super) ? super() : nil
+      Rails.logger.info("[anonymous] returning super/nil: #{result}")
+      result
     end
+  rescue StandardError => e
+    Rails.logger.error("[anonymous] basic_user_serializer.avatar_template ERROR: #{e.class}: #{e.message}\n#{e.backtrace.first(10).join("\n")}")
+    raise e
   end
 
   extract_item_user_id =
@@ -250,6 +257,7 @@ after_initialize do
   end
 
   add_to_class(:topic_list_item_serializer, :posters) do
+    Rails.logger.info("[anonymous] topic_list_item_serializer.posters START, topic_id=#{object&.id}")
     posters =
       if defined?(super)
         Array(super())
@@ -269,7 +277,8 @@ after_initialize do
 
     owner_poster = build_topic_owner_poster.call(topic, source_poster, owner_user)
     owner_poster.present? ? [owner_poster] : posters.first(1)
-  rescue StandardError
+  rescue StandardError => e
+    Rails.logger.error("[anonymous] topic_list_item_serializer.posters ERROR: #{e.class}: #{e.message}\n#{e.backtrace.first(10).join("\n")}")
     if defined?(super)
       Array(super())
     elsif object.respond_to?(:posters)
@@ -280,6 +289,7 @@ after_initialize do
   end
 
   add_to_class(:topic_list_item_serializer, :participants) do
+    Rails.logger.info("[anonymous] topic_list_item_serializer.participants START, topic_id=#{object&.id}")
     participants =
       if defined?(super)
         Array(super())
@@ -300,7 +310,8 @@ after_initialize do
 
     owner_participant = build_topic_owner_poster.call(topic, source_participant, owner_user)
     owner_participant.present? ? [owner_participant] : participants.first(1)
-  rescue StandardError
+  rescue StandardError => e
+    Rails.logger.error("[anonymous] topic_list_item_serializer.participants ERROR: #{e.class}: #{e.message}\n#{e.backtrace.first(10).join("\n")}")
     if defined?(super)
       Array(super())
     elsif object.respond_to?(:participants)
