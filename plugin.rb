@@ -103,6 +103,45 @@ after_initialize do
     raise e
   end
 
+  add_to_class(:basic_user_serializer, :id) do
+    if object.respond_to?(:id)
+      object.id
+    elsif Hash === object
+      object[:id] || object["id"]
+    else
+      defined?(super) ? super() : nil
+    end
+  rescue StandardError => e
+    Rails.logger.error("[anonymous] basic_user_serializer.id ERROR: #{e.class}: #{e.message}")
+    raise e
+  end
+
+  add_to_class(:basic_user_serializer, :username) do
+    if object.respond_to?(:username)
+      object.username
+    elsif Hash === object
+      object[:username] || object["username"]
+    else
+      defined?(super) ? super() : nil
+    end
+  rescue StandardError => e
+    Rails.logger.error("[anonymous] basic_user_serializer.username ERROR: #{e.class}: #{e.message}")
+    raise e
+  end
+
+  add_to_class(:basic_user_serializer, :name) do
+    if object.respond_to?(:name)
+      object.name
+    elsif Hash === object
+      object[:name] || object["name"]
+    else
+      defined?(super) ? super() : nil
+    end
+  rescue StandardError => e
+    Rails.logger.error("[anonymous] basic_user_serializer.name ERROR: #{e.class}: #{e.message}")
+    raise e
+  end
+
   extract_item_user_id =
     lambda do |item|
       return if item.blank?
@@ -160,7 +199,7 @@ after_initialize do
 
       # Always convert hash to Struct so BasicUserSerializer can handle it
       # Provide safe defaults for missing fields
-      pseudo_user_struct.new(
+      result = pseudo_user_struct.new(
         id: user[:id] || user["id"],
         username: user[:username] || user["username"],
         name: user[:name] || user["name"],
@@ -171,6 +210,8 @@ after_initialize do
         moderator: user[:moderator] || user["moderator"] || false,
         trust_level: user[:trust_level] || user["trust_level"] || 1
       )
+      Rails.logger.info("[anonymous] normalize_user_like created struct: id=#{result.id}, username=#{result.username}, name=#{result.name}, avatar_template=#{result.avatar_template}")
+      result
     end
 
   topic_owner_user =
