@@ -331,23 +331,34 @@ after_initialize do
   end
 
   add_to_class(:category_and_topic_lists_serializer, :users) do
+    Rails.logger.info("[anonymous] category_and_topic_lists_serializer START")
     users = []
     topics = object&.topic_list&.topics || []
+    Rails.logger.info("[anonymous] topics count: #{topics.size}")
 
-    topics.each do |topic|
+    topics.each_with_index do |topic, idx|
       next if topic.blank? || topic.user_id.blank?
 
+      Rails.logger.info("[anonymous] processing topic #{idx}: id=#{topic.id}, user_id=#{topic.user_id}")
       owner_user = topic_owner_user.call(topic)
+      Rails.logger.info("[anonymous] owner_user: #{owner_user.class}")
+
       display_user = topic_owner_display_user.call(topic, owner_user)
+      Rails.logger.info("[anonymous] display_user: #{display_user.class}, is_hash=#{Hash === display_user}")
+
       users << display_user if display_user.present?
     end
 
-    users.uniq do |user|
+    Rails.logger.info("[anonymous] before uniq, users count: #{users.size}")
+    result = users.uniq do |user|
       Hash === user ? user[:id] : user.id
     end
+    Rails.logger.info("[anonymous] after uniq, users count: #{result.size}")
+    result
   rescue StandardError => e
-    Rails.logger.error("[anonymous] category_and_topic_lists_serializer error: #{e.class}: #{e.message}\n#{e.backtrace.first(10).join("\n")}")
-    []
+    Rails.logger.error("[anonymous] category_and_topic_lists_serializer ERROR: #{e.class}: #{e.message}")
+    Rails.logger.error("[anonymous] backtrace: #{e.backtrace.first(20).join("\n")}")
+    raise e
   end
 
   add_to_class(:topic_view_details_serializer, :participants) do
