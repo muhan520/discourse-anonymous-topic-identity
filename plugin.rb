@@ -158,17 +158,8 @@ after_initialize do
       return nil if user.blank?
       return user unless Hash === user
 
-      # Check if this is a minimal pseudo user hash (only basic fields)
-      # If so, return as-is to let BasicUserSerializer handle it correctly
-      has_extended_fields = user.key?(:primary_group_id) || user.key?("primary_group_id") ||
-                            user.key?(:flair_group) || user.key?("flair_group") ||
-                            user.key?(:admin) || user.key?("admin") ||
-                            user.key?(:moderator) || user.key?("moderator") ||
-                            user.key?(:trust_level) || user.key?("trust_level")
-
-      return user unless has_extended_fields
-
-      # Only convert to Struct if it has extended fields
+      # Always convert hash to Struct so BasicUserSerializer can handle it
+      # Provide safe defaults for missing fields
       pseudo_user_struct.new(
         id: user[:id] || user["id"],
         username: user[:username] || user["username"],
@@ -176,9 +167,9 @@ after_initialize do
         avatar_template: user[:avatar_template] || user["avatar_template"],
         primary_group_id: user[:primary_group_id] || user["primary_group_id"],
         flair_group: user[:flair_group] || user["flair_group"],
-        admin: user[:admin] || user["admin"],
-        moderator: user[:moderator] || user["moderator"],
-        trust_level: user[:trust_level] || user["trust_level"]
+        admin: user[:admin] || user["admin"] || false,
+        moderator: user[:moderator] || user["moderator"] || false,
+        trust_level: user[:trust_level] || user["trust_level"] || 1
       )
     end
 
