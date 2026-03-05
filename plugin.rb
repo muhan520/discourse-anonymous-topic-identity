@@ -258,7 +258,41 @@ after_initialize do
 
   add_to_class(:topic_list_item_serializer, :posters) do
     Rails.logger.info("[anonymous] topic_list_item_serializer.posters START, topic_id=#{object&.id}")
-    posters =
+    begin
+      posters =
+        if defined?(super)
+          Rails.logger.info("[anonymous] posters: calling super()")
+          Array(super())
+        elsif object.respond_to?(:posters)
+          Rails.logger.info("[anonymous] posters: calling object.posters")
+          Array(object.posters)
+        else
+          Rails.logger.info("[anonymous] posters: empty")
+          []
+        end
+      Rails.logger.info("[anonymous] posters: got #{posters.size} posters")
+      topic = object
+
+      op_user_id = topic&.user_id
+      if op_user_id.blank?
+        Rails.logger.info("[anonymous] posters: op_user_id blank, returning original")
+        return posters
+      end
+
+      Rails.logger.info("[anonymous] posters: op_user_id=#{op_user_id}")
+      owner_user = topic_owner_user.call(topic)
+      Rails.logger.info("[anonymous] posters: owner_user=#{owner_user.class}")
+      source_poster = posters.find { |poster| extract_item_user_id.call(poster).to_i == op_user_id.to_i }
+      source_poster ||= posters.first
+      Rails.logger.info("[anonymous] posters: source_poster=#{source_poster.class}")
+
+      owner_poster = build_topic_owner_poster.call(topic, source_poster, owner_user)
+      Rails.logger.info("[anonymous] posters: owner_poster=#{owner_poster.class}, user=#{owner_poster&.user.class}")
+      result = owner_poster.present? ? [owner_poster] : posters.first(1)
+      Rails.logger.info("[anonymous] posters: returning #{result.size} posters")
+      result
+    rescue Exception => e
+      Rails.logger.error("[anonymous] topic_list_item_serializer.posters ERROR: #{e.class}: #{e.message}\n#{e.backtrace.first(15).join("\n")}")
       if defined?(super)
         Array(super())
       elsif object.respond_to?(:posters)
@@ -266,25 +300,6 @@ after_initialize do
       else
         []
       end
-    topic = object
-
-    op_user_id = topic&.user_id
-    return posters if op_user_id.blank?
-
-    owner_user = topic_owner_user.call(topic)
-    source_poster = posters.find { |poster| extract_item_user_id.call(poster).to_i == op_user_id.to_i }
-    source_poster ||= posters.first
-
-    owner_poster = build_topic_owner_poster.call(topic, source_poster, owner_user)
-    owner_poster.present? ? [owner_poster] : posters.first(1)
-  rescue StandardError => e
-    Rails.logger.error("[anonymous] topic_list_item_serializer.posters ERROR: #{e.class}: #{e.message}\n#{e.backtrace.first(10).join("\n")}")
-    if defined?(super)
-      Array(super())
-    elsif object.respond_to?(:posters)
-      Array(object.posters)
-    else
-      []
     end
   end
 
