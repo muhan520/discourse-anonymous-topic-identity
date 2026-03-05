@@ -325,6 +325,9 @@ after_initialize do
     users.uniq do |user|
       Hash === user ? user[:id] : user.id
     end
+  rescue StandardError => e
+    Rails.logger.error("[anonymous] topic_list_serializer error: #{e.class}: #{e.message}\n#{e.backtrace.first(10).join("\n")}")
+    []
   end
 
   add_to_class(:category_and_topic_lists_serializer, :users) do
@@ -342,6 +345,9 @@ after_initialize do
     users.uniq do |user|
       Hash === user ? user[:id] : user.id
     end
+  rescue StandardError => e
+    Rails.logger.error("[anonymous] category_and_topic_lists_serializer error: #{e.class}: #{e.message}\n#{e.backtrace.first(10).join("\n")}")
+    []
   end
 
   add_to_class(:topic_view_details_serializer, :participants) do
