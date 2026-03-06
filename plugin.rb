@@ -185,10 +185,6 @@ after_initialize do
           super
         end
       end
-
-      def respond_to_missing?(_method_name, _include_private = false)
-        true
-      end
     end
 
   normalize_user_like =
