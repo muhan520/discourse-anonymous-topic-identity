@@ -194,6 +194,20 @@ after_initialize do
       def read_attribute_for_serialization(attr)
         respond_to?(attr) ? send(attr) : nil
       end
+
+      # Return nil for any attribute the serializer asks for that isn't defined
+      # on this Struct (e.g. primary_group, status, flair_name, etc.).
+      def method_missing(method_name, *args, &block)
+        if args.empty? && block.nil?
+          nil
+        else
+          super
+        end
+      end
+
+      def respond_to_missing?(_method_name, _include_private = false)
+        true
+      end
     end
 
   normalize_user_like =
