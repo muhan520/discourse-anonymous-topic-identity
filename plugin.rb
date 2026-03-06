@@ -88,6 +88,41 @@ after_initialize do
     add_to_serializer(serializer_name, :anonymous_real_user_id, true) { object.user_id }
   end
 
+  # Hide reply-to indicator on anonymous posts (prevents identity linkage)
+  add_to_class(:post_serializer, :include_reply_to_user?) do
+    snapshot = object.custom_fields[::AnonymousTopicIdentity::Fields::DISPLAY_SNAPSHOT]
+    return false if snapshot.present? && !scope&.is_staff?
+
+    defined?(super) ? super() : object.reply_to_user.present?
+  end
+
+  # Anonymize reply-to user when the replied-to post is also anonymous
+  add_to_class(:post_serializer, :reply_to_user) do
+    if !scope&.is_staff? && object.reply_to_user.present?
+      topic_id = object.topic_id
+      replied_to_user_id = object.reply_to_user.id
+
+      if ::AnonymousTopicIdentity::AnonymizedUserMapper.anonymous_in_topic?(
+        topic_id: topic_id,
+        user_id: replied_to_user_id
+      )
+        snapshot = ::AnonymousTopicIdentity::AnonymizedUserMapper.snapshot_for(
+          topic_id: topic_id,
+          user_id: replied_to_user_id
+        )
+        if snapshot.present?
+          return {
+            username: snapshot,
+            name: snapshot,
+            avatar_template: User.avatar_template("anonymous", nil),
+          }
+        end
+      end
+    end
+
+    defined?(super) ? super() : nil
+  end
+
   add_to_class(:basic_user_serializer, :avatar_template) do
     Rails.logger.info("[anonymous] basic_user_serializer.avatar_template, object class: #{object.class}, is_hash: #{Hash === object}")
     if Hash === object && object[:avatar_template].present?
