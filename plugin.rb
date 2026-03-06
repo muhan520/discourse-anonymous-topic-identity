@@ -123,60 +123,6 @@ after_initialize do
     defined?(super) ? super() : nil
   end
 
-  add_to_class(:basic_user_serializer, :avatar_template) do
-    Rails.logger.info("[anonymous] basic_user_serializer.avatar_template, object class: #{object.class}, is_hash: #{Hash === object}")
-    if Hash === object && object[:avatar_template].present?
-      Rails.logger.info("[anonymous] returning hash avatar_template: #{object[:avatar_template]}")
-      object[:avatar_template]
-    else
-      result = defined?(super) ? super() : nil
-      Rails.logger.info("[anonymous] returning super/nil: #{result}")
-      result
-    end
-  rescue StandardError => e
-    Rails.logger.error("[anonymous] basic_user_serializer.avatar_template ERROR: #{e.class}: #{e.message}\n#{e.backtrace.first(10).join("\n")}")
-    raise e
-  end
-
-  add_to_class(:basic_user_serializer, :id) do
-    if object.respond_to?(:id)
-      object.id
-    elsif Hash === object
-      object[:id] || object["id"]
-    else
-      defined?(super) ? super() : nil
-    end
-  rescue StandardError => e
-    Rails.logger.error("[anonymous] basic_user_serializer.id ERROR: #{e.class}: #{e.message}")
-    raise e
-  end
-
-  add_to_class(:basic_user_serializer, :username) do
-    if object.respond_to?(:username)
-      object.username
-    elsif Hash === object
-      object[:username] || object["username"]
-    else
-      defined?(super) ? super() : nil
-    end
-  rescue StandardError => e
-    Rails.logger.error("[anonymous] basic_user_serializer.username ERROR: #{e.class}: #{e.message}")
-    raise e
-  end
-
-  add_to_class(:basic_user_serializer, :name) do
-    if object.respond_to?(:name)
-      object.name
-    elsif Hash === object
-      object[:name] || object["name"]
-    else
-      defined?(super) ? super() : nil
-    end
-  rescue StandardError => e
-    Rails.logger.error("[anonymous] basic_user_serializer.name ERROR: #{e.class}: #{e.message}")
-    raise e
-  end
-
   extract_item_user_id =
     lambda do |item|
       return if item.blank?
@@ -263,7 +209,6 @@ after_initialize do
         moderator: user[:moderator] || user["moderator"] || false,
         trust_level: user[:trust_level] || user["trust_level"] || 1
       )
-      Rails.logger.info("[anonymous] normalize_user_like created struct: id=#{result.id}, username=#{result.username}, name=#{result.name}, avatar_template=#{result.avatar_template}")
       result
     end
 
@@ -342,42 +287,7 @@ after_initialize do
   end
 
   add_to_class(:topic_list_item_serializer, :posters) do
-    Rails.logger.info("[anonymous] topic_list_item_serializer.posters START, topic_id=#{object&.id}")
-    begin
-      posters =
-        if defined?(super)
-          Rails.logger.info("[anonymous] posters: calling super()")
-          Array(super())
-        elsif object.respond_to?(:posters)
-          Rails.logger.info("[anonymous] posters: calling object.posters")
-          Array(object.posters)
-        else
-          Rails.logger.info("[anonymous] posters: empty")
-          []
-        end
-      Rails.logger.info("[anonymous] posters: got #{posters.size} posters")
-      topic = object
-
-      op_user_id = topic&.user_id
-      if op_user_id.blank?
-        Rails.logger.info("[anonymous] posters: op_user_id blank, returning original")
-        return posters
-      end
-
-      Rails.logger.info("[anonymous] posters: op_user_id=#{op_user_id}")
-      owner_user = topic_owner_user.call(topic)
-      Rails.logger.info("[anonymous] posters: owner_user=#{owner_user.class}")
-      source_poster = posters.find { |poster| extract_item_user_id.call(poster).to_i == op_user_id.to_i }
-      source_poster ||= posters.first
-      Rails.logger.info("[anonymous] posters: source_poster=#{source_poster.class}")
-
-      owner_poster = build_topic_owner_poster.call(topic, source_poster, owner_user)
-      Rails.logger.info("[anonymous] posters: owner_poster=#{owner_poster.class}, user=#{owner_poster&.user.class}")
-      result = owner_poster.present? ? [owner_poster] : posters.first(1)
-      Rails.logger.info("[anonymous] posters: returning #{result.size} posters")
-      result
-    rescue Exception => e
-      Rails.logger.error("[anonymous] topic_list_item_serializer.posters ERROR: #{e.class}: #{e.message}\n#{e.backtrace.first(15).join("\n")}")
+    posters =
       if defined?(super)
         Array(super())
       elsif object.respond_to?(:posters)
@@ -385,11 +295,28 @@ after_initialize do
       else
         []
       end
+    topic = object
+
+    op_user_id = topic&.user_id
+    return posters if op_user_id.blank?
+
+    owner_user = topic_owner_user.call(topic)
+    source_poster = posters.find { |poster| extract_item_user_id.call(poster).to_i == op_user_id.to_i }
+    source_poster ||= posters.first
+
+    owner_poster = build_topic_owner_poster.call(topic, source_poster, owner_user)
+    owner_poster.present? ? [owner_poster] : posters.first(1)
+  rescue StandardError
+    if defined?(super)
+      Array(super())
+    elsif object.respond_to?(:posters)
+      Array(object.posters)
+    else
+      []
     end
   end
 
   add_to_class(:topic_list_item_serializer, :participants) do
-    Rails.logger.info("[anonymous] topic_list_item_serializer.participants START, topic_id=#{object&.id}")
     participants =
       if defined?(super)
         Array(super())
@@ -410,8 +337,7 @@ after_initialize do
 
     owner_participant = build_topic_owner_poster.call(topic, source_participant, owner_user)
     owner_participant.present? ? [owner_participant] : participants.first(1)
-  rescue StandardError => e
-    Rails.logger.error("[anonymous] topic_list_item_serializer.participants ERROR: #{e.class}: #{e.message}\n#{e.backtrace.first(10).join("\n")}")
+  rescue StandardError
     if defined?(super)
       Array(super())
     elsif object.respond_to?(:participants)
@@ -433,43 +359,26 @@ after_initialize do
       users << display_user if display_user.present?
     end
 
-    users.uniq do |user|
-      Hash === user ? user[:id] : user.id
-    end
-  rescue StandardError => e
-    Rails.logger.error("[anonymous] topic_list_serializer error: #{e.class}: #{e.message}\n#{e.backtrace.first(10).join("\n")}")
+    users.uniq { |user| user.respond_to?(:id) ? user.id : nil }
+  rescue StandardError
     []
   end
 
   add_to_class(:category_and_topic_lists_serializer, :users) do
-    Rails.logger.info("[anonymous] category_and_topic_lists_serializer START")
     users = []
     topics = object&.topic_list&.topics || []
-    Rails.logger.info("[anonymous] topics count: #{topics.size}")
 
-    topics.each_with_index do |topic, idx|
+    topics.each do |topic|
       next if topic.blank? || topic.user_id.blank?
 
-      Rails.logger.info("[anonymous] processing topic #{idx}: id=#{topic.id}, user_id=#{topic.user_id}")
       owner_user = topic_owner_user.call(topic)
-      Rails.logger.info("[anonymous] owner_user: #{owner_user.class}")
-
       display_user = topic_owner_display_user.call(topic, owner_user)
-      Rails.logger.info("[anonymous] display_user: #{display_user.class}, is_hash=#{Hash === display_user}")
-
       users << display_user if display_user.present?
     end
 
-    Rails.logger.info("[anonymous] before uniq, users count: #{users.size}")
-    result = users.uniq do |user|
-      Hash === user ? user[:id] : user.id
-    end
-    Rails.logger.info("[anonymous] after uniq, users count: #{result.size}")
-    result
-  rescue StandardError => e
-    Rails.logger.error("[anonymous] category_and_topic_lists_serializer ERROR: #{e.class}: #{e.message}")
-    Rails.logger.error("[anonymous] backtrace: #{e.backtrace.first(20).join("\n")}")
-    raise e
+    users.uniq { |user| user.respond_to?(:id) ? user.id : nil }
+  rescue StandardError
+    []
   end
 
   add_to_class(:topic_view_details_serializer, :participants) do
