@@ -190,7 +190,11 @@ after_initialize do
       :moderator,
       :trust_level,
       keyword_init: true
-    )
+    ) do
+      def read_attribute_for_serialization(attr)
+        respond_to?(attr) ? send(attr) : nil
+      end
+    end
 
   normalize_user_like =
     lambda do |user|
